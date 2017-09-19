@@ -1,0 +1,8 @@
+setup.py
+plotly_eda/__init__.py
+plotly_eda.egg-info/PKG-INFO
+plotly_eda.egg-info/SOURCES.txt
+plotly_eda.egg-info/dependency_links.txt
+plotly_eda.egg-info/not-zip-safe
+plotly_eda.egg-info/requires.txt
+plotly_eda.egg-info/top_level.txt
