@@ -1,10 +1,13 @@
 import pandas as pd
+# from pandas.api.types import is_string_dtype
+from pandas.api.types import is_numeric_dtype
+
 import numpy as np
 # import math
 import scipy
 
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
+import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 import matplotlib.patches as mpatches
 # import matplotlib.mlab as mlab
@@ -19,8 +22,6 @@ import plotly.graph_objs as go
 import plotly.figure_factory as ff
 init_notebook_mode(connected=True)
 
-def ini():
-    return "ini"
 
 def describe_info(dataframe):
     df_describe = dataframe.describe()
@@ -117,10 +118,10 @@ def set_color_setup(data, **kwargs):
         if 'norm_max' in kwargs:
             norm_max = kwargs['norm_max']
         if 'colormap_name' not in kwargs:
-            kwargs['colormap_name'] = 'bwr'
+            kwargs['colormap_name'] = 'seismic'
     color_setup = {
         'colormap': plt.get_cmap(kwargs['colormap_name']),
-        'colormapNorm': colors.Normalize(vmin=norm_min, vmax=norm_max)}
+        'colormapNorm': mcolors.Normalize(vmin=norm_min, vmax=norm_max)}
     color_setup['scalarMap'] = cm.ScalarMappable(norm=color_setup['colormapNorm'], cmap=color_setup['colormap'])
     return color_setup
 
@@ -154,7 +155,7 @@ def set_plot_setup(data, color_setup):
     return plot_setup
 
 
-def custom_colorscale(data, original_bounds=[-1, 1], colormap_name='bwr'):
+def custom_colorscale(data, original_bounds=[-1, 1], colormap_name='seismic'):
     if not list(data): raise Exception(
         "No 'data' has been provided. Make sure you provide the parameter to prepare the setup.")
     norm = (np.array(range(21)) / 20).round(2)
@@ -164,7 +165,7 @@ def custom_colorscale(data, original_bounds=[-1, 1], colormap_name='bwr'):
     data_norm = to_new_scale(data, [0, 1], [-1, 1]).round(2)
     filter_selected = (converter.norm >= round(min(data_norm), 2)) & (converter.norm <= round(max(data_norm), 2))
     color_selected = converter[filter_selected].rgb
-    norm_selected = to_new_scale(converter[filter_selected].norm, [0, 1]).round(2)
+    norm_selected = to_new_scale(converter[filter_selected].norm, [0, 1], original_bounds).round(2)
     output = {
         'filter_selected': filter_selected,
         'color_selected': color_selected,
@@ -180,8 +181,8 @@ def custom_colorscale(data, original_bounds=[-1, 1], colormap_name='bwr'):
     return output
 
 
-def plot_pearsons(dataframe, columns_array, **kwargs):
-    valid_kwargs = ['hover_text']
+def plot_pearsons(dataframe, columns_array=[], **kwargs):
+    valid_kwargs = ['hover_text', 'plot_title', 'margin', 'height']
     if 'help' in kwargs and kwargs['help'] == 'args':
         return print(valid_kwargs)
     for kwarg in kwargs:
@@ -194,42 +195,63 @@ def plot_pearsons(dataframe, columns_array, **kwargs):
         df_pearsons = dataframe[columns_array]
     else:
         df_pearsons = dataframe
-    # as type float
-    df_pearsons = df_pearsons.apply(
-        lambda col: pd.Categorical(col).codes if type(col.dtypes == str) else col.astype(float))
+     # as type float
+    for column in df_pearsons.columns:
+        if not is_numeric_dtype(dataframe[column]):
+            raise Exception("Column '{}' has to be float type,".format(column))
     correlation_matrix = df_pearsons.corr()
-    np.fill_diagonal(correlation_matrix.values, 0.000001)
+    np.fill_diagonal(correlation_matrix.values, 0)
     if kwargs and 'hover_text' in kwargs and kwargs['hover_text']:
         text = kwargs['hover_text']
     else:
         correlation_matrix_label = correlation_matrix.copy()
         for column in correlation_matrix_label.columns:
             correlation_matrix_label[column] = pd.cut(correlation_matrix_label[column], right=False,
-                                                      bins=[-1, -0.8, -0.6, -0.4, -0.2, -0.00001, 0.00001, 0.2, 0.4,
-                                                            0.6, 0.8, 1],
-                                                      labels=['very strong -', 'strong -', 'moderate -', 'weak -',
-                                                              'very weak -', '=', 'very weak +', 'weak +', 'moderate +',
-                                                              'strong +', 'very strong +'])
-        xy = correlation_matrix.apply(lambda c: "x: " + c.index + "<br>y: " + c.name + "<br>z: ")
+                bins= [-1, -0.8, -0.6, -0.4, -0.2, -0.05, 0.05, 0.2, 0.4, 0.6, 0.8, 1],
+                labels= ['very strong -', 'strong -', 'moderate -', 'weak -', 'very weak -', '', 'very weak +',
+                          'weak +', 'moderate +', 'strong +', 'very strong +'])
+        xy = correlation_matrix.apply(lambda c: "x: "+c.index+"<br>y: "+c.name+"<br>z: ")
         z = correlation_matrix.applymap("{:1.2f}<br>corr: ".format)
         text = xy + z + correlation_matrix_label.applymap(str)
         np.fill_diagonal(text.values, "")
+    correlation_matrix_values = np.nan_to_num(correlation_matrix.values.flatten())
+    lower_color = custom_colorscale(correlation_matrix_values)["colorscale"][0][1]
+    middle_value = to_new_scale([0], [0, 1], [correlation_matrix_values.min(), correlation_matrix_values.max()])
+    upper_color = custom_colorscale(correlation_matrix_values)["colorscale"][-1][1]
     trace = go.Heatmap(
-        z=correlation_matrix.values,
-        x=df_pearsons.columns,
-        y=df_pearsons.columns,
+        z=np.nan_to_num(correlation_matrix.values),
+        x=columns_array,
+        y=columns_array,
         text=text.values,
         hoverinfo="text",
-        colorscale=custom_colorscale(correlation_matrix.values.flatten())["colorscale"],
-        colorbar={'tickvals': [-1, -0.8, -0.6, -0, 4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]}
+        colorscale=[[0, lower_color],
+                    [middle_value, 'rgb(255,255,255)'],
+                    [1, upper_color]],
+        colorbar={'tickvals': [-1, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1,
+                               0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]}
     )
-    iplot([trace])
+    layout_json = {
+        'margin': {
+            't': 50,
+            'r': 50,
+            'b': 120,
+            'l': 120}
+    }
+    if kwargs and 'height' in kwargs:
+        layout_json['height'] = kwargs['height']
+    if kwargs and 'margin' in kwargs:
+        layout_json['margin'] = kwargs['margin']
+    if kwargs and 'plot_title' in kwargs:
+        layout_json['title'] = kwargs['plot_title']
+    figure = dict(data=[trace], layout=layout_json)
+    iplot(figure)
 
 
 def plot_attribute(df, field, **kwargs):
     valid_kwargs = [
         # common
-        'mode', 'plot_title', 'x_title', 'y_title', 'colors', 'help',
+        'mode', 'plot_title', 'x_title', 'y_title', 'colors',
+        'help', 'margin', 'height', 'x_showticklabels',
         # categorical
         'barmode', 'width', 'sorting', 'x_labels_map', 'text_hover',
         # numerical
@@ -256,10 +278,16 @@ def plot_attribute(df, field, **kwargs):
             'title': ''},
         'yaxis': {
             'title': ''}}
+    if 'height' in kwargs:
+        layout['height'] = kwargs['height']
+    if 'margin' in kwargs:
+        layout['margin'] = kwargs['margin']
     if 'plot_title' in kwargs:
         layout['title'] = kwargs['plot_title']
     if 'x_title' in kwargs:
         layout['xaxis']['title'] = kwargs['x_title']
+    if 'x_showticklabels' in kwargs:
+        layout['xaxis']['showticklabels'] = kwargs['x_showticklabels']
     if 'y_title' in kwargs:
         layout['yaxis']['title'] = kwargs['y_title']
     # - mode : ['categorical,'numerical']
@@ -339,7 +367,7 @@ def plot_attribute(df, field, **kwargs):
 #         width_value = range_value/min([n_bins,df[field].unique().size])
         # - size
         if 'width_bins' in kwargs:
-            width_value = int(kwargs['width_bins'])
+            width_value = kwargs['width_bins']
         data['xbins']['size'] = width_value
         # - verbosity
         if 'verbose' in kwargs and kwargs['verbose']:
@@ -491,7 +519,7 @@ def plot_attribute_vs_attribute(dataframe, group_model, bar_model, **kwargs):
         layout_json['barmode'] = barmode
         if barmode in ['group', 'stack', 'relative']:
             # - y
-            matrix_y = pd.DataFrame(0, index=df_groups, columns=df_bars)
+            matrix_y = pd.DataFrame(0, index=df_groups, columns=list(set(df_bars + list(bar_model['bars'].keys()))))
             for group in df_groups:
                 for bar in df_bars:
                     matrix_y.loc[group, bar] = \
@@ -534,7 +562,7 @@ def plot_attribute_vs_attribute(dataframe, group_model, bar_model, **kwargs):
                 group_metrics = list(set(metrics).intersection(group_model['groups'].keys()))[::-1]
                 if group_metrics:
                     metrics_and_groups = group_metrics + list(df_groups)
-            df_data = pd.DataFrame(0, index=metrics_and_groups, columns=df_bars)
+            df_data = pd.DataFrame(0, index=metrics_and_groups, columns=list(set(df_bars + list(bar_model['bars'].keys()))))
             # preparing data for plot
             for group in df_groups:
                 df_data.loc[group, '#_total'] = len(dataframe[(dataframe[group_model['field']] == group)])
@@ -920,3 +948,4 @@ does not match with the columns in the dataframe: \n {metrics_and_groups}".forma
         # # fig['layout']= layout_json
 
         # iplot(fig)
+

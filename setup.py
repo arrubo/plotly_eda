@@ -24,3 +24,4 @@ setup(name='plotly_eda',
         'colorlover',
         'plotly'],
       zip_safe=False)
+
