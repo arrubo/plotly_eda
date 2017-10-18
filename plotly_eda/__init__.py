@@ -255,7 +255,7 @@ def plot_attribute(df, field, **kwargs):
         'mode', 'plot_title', 'x_title', 'y_title', 'colors',
         'help', 'margin', 'height', 'width', 'x_showticklabels',
         # categorical
-        'barmode', 'width', 'sorting', 'x_labels_map', 'text_hover',
+        'barmode', 'bar_width', 'sorting', 'x_labels_map', 'text_hover',
         # numerical
         'start_bin', 'end_bin', 'width_bins', 'n_bins', 'verbose'
     ]
@@ -330,9 +330,9 @@ def plot_attribute(df, field, **kwargs):
         if 'x_labels_map' in kwargs:
             keys = [kwargs['x_labels_map'][key] for key in list(keys)]
             data['x'] = keys
-        # customizing bin widths
-        if 'width' in kwargs:
-            data['width'] = kwargs['width']
+        # customizing bar widths
+        if 'bar_width' in kwargs:
+            data['bar_width'] = kwargs['bar_width']
         # customizing hover text
         if 'text_hover' in kwargs:
             data['text'] = kwargs['text_hover']
