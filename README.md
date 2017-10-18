@@ -1,10 +1,10 @@
-### INSTALL plotly_eda
+### How to install plotly_eda
 
 Clone the proyect. Then, in the project path execute...
 
 `pip install .`
 
-### UPGRADE plotly_eda
+### How to upgrade plotly_eda
 
 In the project path execute...
 
