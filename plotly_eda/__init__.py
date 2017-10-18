@@ -182,7 +182,7 @@ def custom_colorscale(data, original_bounds=[-1, 1], colormap_name='seismic'):
 
 
 def plot_pearsons(dataframe, columns_array=[], **kwargs):
-    valid_kwargs = ['hover_text', 'plot_title', 'margin', 'height']
+    valid_kwargs = ['hover_text', 'plot_title', 'margin', 'height', 'width']
     if 'help' in kwargs and kwargs['help'] == 'args':
         return print(valid_kwargs)
     for kwarg in kwargs:
@@ -207,7 +207,7 @@ def plot_pearsons(dataframe, columns_array=[], **kwargs):
         correlation_matrix_label = correlation_matrix.copy()
         for column in correlation_matrix_label.columns:
             correlation_matrix_label[column] = pd.cut(correlation_matrix_label[column], right=False,
-                bins= [-1, -0.8, -0.6, -0.4, -0.2, -0.05, 0.05, 0.2, 0.4, 0.6, 0.8, 1],
+                bins= [-1, -0.8, -0.6, -0.4, -0.2, -0.01, 0.01, 0.2, 0.4, 0.6, 0.8, 1],
                 labels= ['very strong -', 'strong -', 'moderate -', 'weak -', 'very weak -', '', 'very weak +',
                           'weak +', 'moderate +', 'strong +', 'very strong +'])
         xy = correlation_matrix.apply(lambda c: "x: "+c.index+"<br>y: "+c.name+"<br>z: ")
@@ -239,6 +239,8 @@ def plot_pearsons(dataframe, columns_array=[], **kwargs):
     }
     if kwargs and 'height' in kwargs:
         layout_json['height'] = kwargs['height']
+    if kwargs and 'width' in kwargs:
+        layout_json['width'] = kwargs['width']
     if kwargs and 'margin' in kwargs:
         layout_json['margin'] = kwargs['margin']
     if kwargs and 'plot_title' in kwargs:
@@ -251,7 +253,7 @@ def plot_attribute(df, field, **kwargs):
     valid_kwargs = [
         # common
         'mode', 'plot_title', 'x_title', 'y_title', 'colors',
-        'help', 'margin', 'height', 'x_showticklabels',
+        'help', 'margin', 'height', 'width', 'x_showticklabels',
         # categorical
         'barmode', 'width', 'sorting', 'x_labels_map', 'text_hover',
         # numerical
@@ -280,6 +282,8 @@ def plot_attribute(df, field, **kwargs):
             'title': ''}}
     if 'height' in kwargs:
         layout['height'] = kwargs['height']
+    if 'width' in kwargs:
+        layout['width'] = kwargs['width']
     if 'margin' in kwargs:
         layout['margin'] = kwargs['margin']
     if 'plot_title' in kwargs:
@@ -462,7 +466,7 @@ def plot_attribute_vs_attribute(dataframe, group_model, bar_model, **kwargs):
         # }
     valid_kwargs = [
         # common
-        'mode', 'plot_title', 'x_title', 'y_title', 'help', 'barmode', 'help', 'rotate_xaxis_ticktext',
+        'mode', 'plot_title', 'x_title', 'y_title', 'help', 'barmode', 'help', 'rotate_xaxis_ticktext', 'height', 'width',
         # categorical
         'orientation', 'sorting', 'legend_traceorder', 'legend_orientation'
         # numerical
@@ -485,6 +489,10 @@ def plot_attribute_vs_attribute(dataframe, group_model, bar_model, **kwargs):
         },
         'xaxis': {},
         'yaxis': {}}
+    if 'height' in kwargs:
+        layout_json['height'] = kwargs['height']
+    if 'width' in kwargs:
+        layout_json['width'] = kwargs['width']
     if 'plot_title' in kwargs:
         layout_json['title'] = kwargs['plot_title']
     if 'x_title' in kwargs:
